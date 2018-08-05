@@ -17,12 +17,15 @@ import (
 var (
 	outputFile = flag.String("o", "example.html", "file to store html")
 	inputFile = flag.String("i", "token.go", "file to lex and highlight")
+	styleName = flag.String("s", "AtelierEstuaryLight", "style to use")
 )
 
 // generates a html file with highlighted code
 // currently always with go language and one specific style
 func main() {
 	flag.Parse()
+
+	s := style.ByName(*styleName)
 
 	// input file
 	src, err := os.Open(*inputFile)
@@ -54,7 +57,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	format.WriteCss(cssBuf, style.GithubGist)
+	format.WriteCss(cssBuf, *s)
 
 	t, err := template.New("").Parse(htmlTemplate)
 	if err != nil {
