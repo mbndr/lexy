@@ -1,12 +1,12 @@
 package main
 
 import (
+	"bytes"
+	"flag"
 	"fmt"
+	"html/template"
 	"log"
 	"os"
-	"flag"
-	"html/template"
-	"bytes"
 
 	"github.com/mbndr/lexy"
 	"github.com/mbndr/lexy/format"
@@ -16,8 +16,8 @@ import (
 
 var (
 	outputFile = flag.String("o", "example.html", "file to store html")
-	inputFile = flag.String("i", "token.go", "file to lex and highlight")
-	styleName = flag.String("s", "AtelierEstuaryLight", "style to use")
+	inputFile  = flag.String("i", "token.go", "file to lex and highlight")
+	styleName  = flag.String("s", "AtelierEstuaryLight", "style to use")
 )
 
 // generates a html file with highlighted code
@@ -64,9 +64,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	t.Execute(dest, struct{
+	t.Execute(dest, struct {
 		Style template.CSS
-		Body template.HTML
+		Body  template.HTML
 	}{
 		template.CSS(cssBuf.String()),
 		template.HTML(htmlBuf.String()),
