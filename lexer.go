@@ -2,10 +2,10 @@ package lexy
 
 import (
 	"bufio"
-	"io"
-	"unicode/utf8"
 	"bytes"
+	"io"
 	"strings"
+	"unicode/utf8"
 
 	"log"
 
@@ -14,7 +14,7 @@ import (
 
 // lexer lexes through a reader
 type lexer struct {
-	r *bufio.Reader
+	r  *bufio.Reader
 	la lang.Lang
 	sf scanFunc
 }
@@ -27,12 +27,10 @@ func NewLexer(r io.Reader, la lang.Lang) *lexer {
 	return l
 }
 
-
 var (
 	// used by scan functions to scan into
 	buf bytes.Buffer
 )
-
 
 // Scan returns the next token
 func (l lexer) Scan() token {
@@ -121,10 +119,16 @@ func scanIdent(l *lexer) token {
 
 	// check for keywords etc
 	s := buf.String()
-	
-	if l.la.Keywords[s] { typ = tokenKeyword }
-	if l.la.Literals[s] { typ = tokenLiteral }
-	if l.la.Builtins[s] { typ = tokenBuiltin }
+
+	if l.la.Keywords[s] {
+		typ = tokenKeyword
+	}
+	if l.la.Literals[s] {
+		typ = tokenLiteral
+	}
+	if l.la.Builtins[s] {
+		typ = tokenBuiltin
+	}
 
 	return token{typ, s}
 }
@@ -211,7 +215,7 @@ func scanComment(l *lexer) token {
 	c := l.read()
 
 	buf.WriteRune(c)
-	
+
 	if c == '/' {
 		// line comment
 		for {
@@ -250,7 +254,7 @@ func scanComment(l *lexer) token {
 
 // scanWhitespace returns a tokenWS token
 func scanWhitespace(l *lexer) token {
-	
+
 	for {
 		c := l.read()
 		if c == eof {

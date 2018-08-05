@@ -17,7 +17,7 @@ func couldBeComment(c, n rune) bool {
 }
 
 func couldBeNumber(c, n rune) bool {
-	return ( isDigit(c) || (c == '.' && isDigit(n)) )
+	return (isDigit(c) || (c == '.' && isDigit(n)))
 }
 
 func IsTokenEOF(t token) bool {

@@ -15,9 +15,9 @@ func NewWordList(s []string) WordList {
 
 type Lang struct {
 	// TODO comment indicators
-	Keywords WordList
-	Literals WordList
-	Builtins WordList
+	Keywords  WordList
+	Literals  WordList
+	Builtins  WordList
 	Operators string // TODO how to implement?
 }
 
@@ -82,55 +82,55 @@ func init() {
 	})
 	Go.Operators = "+-*/&=!()[]{}|<>^:.,;%"
 	/*
-	Go.Operators = NewWordList([]string{
-		"+",
-		"&",
-		"+=",
-		"&=",
-		"&&",
-		"==",
-		"!=",
-		"(",
-		")",
-		"-",
-		"|",
-		"-=",
-		"|=",
-		"||",
-		"<",
-		"<=",
-		"[",
-		"]",
-		"*",
-		"^",
-		"*=",
-		"^=",
-		"<-",
-		">",
-		">=",
-		"{",
-		"}",
-		"/",
-		"<<",
-		"/=",
-		"<<=",
-		"++",
-		"=",
-		":=",
-		",",
-		";",
-		"%",
-		">>",
-		"%=",
-		">>=",
-		"--",
-		"!",
-		"...",
-		".",
-		":",
-		"&^",
-		"&^=",
-	})
+		Go.Operators = NewWordList([]string{
+			"+",
+			"&",
+			"+=",
+			"&=",
+			"&&",
+			"==",
+			"!=",
+			"(",
+			")",
+			"-",
+			"|",
+			"-=",
+			"|=",
+			"||",
+			"<",
+			"<=",
+			"[",
+			"]",
+			"*",
+			"^",
+			"*=",
+			"^=",
+			"<-",
+			">",
+			">=",
+			"{",
+			"}",
+			"/",
+			"<<",
+			"/=",
+			"<<=",
+			"++",
+			"=",
+			":=",
+			",",
+			";",
+			"%",
+			">>",
+			"%=",
+			">>=",
+			"--",
+			"!",
+			"...",
+			".",
+			":",
+			"&^",
+			"&^=",
+		})
 	*/
 	Go.Builtins = NewWordList([]string{
 		"append",
