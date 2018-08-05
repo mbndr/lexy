@@ -12,16 +12,16 @@ import (
 	"github.com/mbndr/lexy/lang"
 )
 
-// lexer lexes through a reader
-type lexer struct {
+// Lexer lexes through a reader
+type Lexer struct {
 	r  *bufio.Reader
 	la lang.Lang
 	sf scanFunc
 }
 
-// NewLexer returns a new instance of a lexer
-func NewLexer(r io.Reader, la lang.Lang) *lexer {
-	l := &lexer{r: bufio.NewReader(r)}
+// NewLexer returns a new instance of a Lexer
+func NewLexer(r io.Reader, la lang.Lang) *Lexer {
+	l := &Lexer{r: bufio.NewReader(r)}
 	l.sf = scanIdent
 	l.la = la
 	return l
@@ -33,12 +33,12 @@ var (
 )
 
 // Scan returns the next token
-func (l lexer) Scan() token {
+func (l Lexer) Scan() Token {
 	buf.Reset()
 
 	c := l.read()
 	if c == eof {
-		return token{tokenEOF, ""}
+		return Token{TokenEOF, ""}
 	}
 	l.unread() // will be reread by scanFunc
 
@@ -61,7 +61,7 @@ func (l lexer) Scan() token {
 }
 
 // read reads the next rune
-func (l *lexer) read() rune {
+func (l *Lexer) read() rune {
 	c, _, err := l.r.ReadRune()
 	if err != nil {
 		return eof
@@ -70,7 +70,7 @@ func (l *lexer) read() rune {
 }
 
 // peek returns what the next rune is
-func (l *lexer) peek() rune {
+func (l *Lexer) peek() rune {
 	b, err := l.r.Peek(1)
 	if err != nil {
 		log.Println(err) // TODO
@@ -81,7 +81,7 @@ func (l *lexer) peek() rune {
 }
 
 // unread unreads the last read rune
-func (l *lexer) unread() {
+func (l *Lexer) unread() {
 	err := l.r.UnreadRune()
 	if err != nil {
 		log.Fatal(err)
@@ -90,12 +90,13 @@ func (l *lexer) unread() {
 
 // scanFunc is a scanner function for a specific token type
 // each function returns
-type scanFunc func(*lexer) token
+type scanFunc func(*Lexer) Token
 
-// scanIdent returns a tokenIdent token
-func scanIdent(l *lexer) token {
+// scanIdent returns a TokenIdent token
+// another TokenType can be returned if the value matches a keyword etc
+func scanIdent(l *Lexer) Token {
 	// can change if we read e.g. a keyword
-	var typ tokenType = tokenIdent
+	var typ TokenType = TokenIdent
 
 	// first char is approved a ident
 	// cannot be done in the for loop because then a digit would be a valid first identifier char
@@ -121,20 +122,20 @@ func scanIdent(l *lexer) token {
 	s := buf.String()
 
 	if l.la.Keywords[s] {
-		typ = tokenKeyword
+		typ = TokenKeyword
 	}
 	if l.la.Literals[s] {
-		typ = tokenLiteral
+		typ = TokenLiteral
 	}
 	if l.la.Builtins[s] {
-		typ = tokenBuiltin
+		typ = TokenBuiltin
 	}
 
-	return token{typ, s}
+	return Token{typ, s}
 }
 
-// scanOperator returns a tokenOperator token
-func scanOperator(l *lexer) token {
+// scanOperator returns a TokenOperator token
+func scanOperator(l *Lexer) Token {
 
 	for {
 		c := l.read()
@@ -150,12 +151,12 @@ func scanOperator(l *lexer) token {
 		buf.WriteRune(c)
 	}
 
-	return token{tokenOperator, buf.String()}
+	return Token{TokenOperator, buf.String()}
 }
 
-// scanString returns a tokenString token
+// scanString returns a TokenString token
 // can also be a char
-func scanString(l *lexer) token {
+func scanString(l *Lexer) Token {
 	var nextEscaped bool
 
 	// '"' or '\''
@@ -181,12 +182,12 @@ func scanString(l *lexer) token {
 		nextEscaped = false
 	}
 
-	return token{tokenString, buf.String()}
+	return Token{TokenString, buf.String()}
 }
 
-// scanNumber returns a tokenNumber token
+// scanNumber returns a TokenNumber token
 // TODO specific number possibilities (prefix, suffix etc)
-func scanNumber(l *lexer) token {
+func scanNumber(l *Lexer) Token {
 	// first char is surely part of a number (maybe '.')
 	buf.WriteRune(l.read())
 
@@ -204,12 +205,12 @@ func scanNumber(l *lexer) token {
 		buf.WriteRune(c)
 	}
 
-	return token{tokenNumber, buf.String()}
+	return Token{TokenNumber, buf.String()}
 }
 
-// scanComment returns a tokenComment token
+// scanComment returns a TokenComment token
 // at this point it's verified that a comment begins
-func scanComment(l *lexer) token {
+func scanComment(l *Lexer) Token {
 
 	buf.WriteRune(l.read()) // first comment indicator
 	c := l.read()
@@ -249,11 +250,11 @@ func scanComment(l *lexer) token {
 		}
 	}
 
-	return token{tokenComment, buf.String()}
+	return Token{TokenComment, buf.String()}
 }
 
-// scanWhitespace returns a tokenWS token
-func scanWhitespace(l *lexer) token {
+// scanWhitespace returns a TokenWS token
+func scanWhitespace(l *Lexer) Token {
 
 	for {
 		c := l.read()
@@ -269,5 +270,5 @@ func scanWhitespace(l *lexer) token {
 		buf.WriteRune(c)
 	}
 
-	return token{tokenWS, buf.String()}
+	return Token{TokenWS, buf.String()}
 }

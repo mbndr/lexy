@@ -2,62 +2,62 @@ package lexy
 
 import "fmt"
 
-type tokenType int
+type TokenType int
 
 const (
 	// e.g. "x color val"
 	// variable name or other identifier
-	tokenIdent tokenType = iota
+	TokenIdent TokenType = iota
 	// e.g. "if for return"
 	// checked after scanned tokenIdent
-	tokenKeyword
+	TokenKeyword
 	// e.g. "true nil"
 	// checked after scanned tokenIdent
-	tokenLiteral
+	TokenLiteral
 	// e.g. "append"
 	// checked after scanned tokenIdent
-	tokenBuiltin // check from ident
+	TokenBuiltin // check from ident
 	// e.g. "+ - = < / . ( }"
 	// operators and punctuation
-	tokenOperator
+	TokenOperator
 	// e.g. "//x /*x*/
-	tokenComment
+	TokenComment
 	// e.g. `"string" 'c'`
 	// highlighted with apostrophys
-	tokenString
+	TokenString
 	// e.g. "0x664"
 	// TODO
-	tokenNumber
+	TokenNumber
 	// e.g. "\t ' ' \n"
-	tokenWS
+	TokenWS
 	// EOF
 	// returned if the file reached the end
-	tokenEOF
+	TokenEOF
 	// invalid token
-	tokenInvalid
+	TokenInvalid
 )
 
-type token struct {
-	typ tokenType
-	val string
+type Token struct {
+	Typ TokenType
+	Val string
 }
 
-func (t token) String() string {
-	return fmt.Sprintf("token{%s, %q}", tokenTypeNames[t.typ], t.val)
+func (t Token) String() string {
+	return fmt.Sprintf("Token{%s, %q}", tokenTypeNames[t.Typ], t.Val)
 }
 
-var tokenTypeNames = map[tokenType]string{
-	tokenKeyword:  "keywo",
-	tokenLiteral:  "liter",
-	tokenBuiltin:  "built",
-	tokenOperator: "opera",
-	tokenComment:  "comnt",
-	tokenString:   "strng",
-	tokenIdent:    "ident",
-	tokenNumber:   "numbr",
-	tokenEOF:      "__eof",
-	tokenWS:       "whtsp",
-	tokenInvalid:  "inval",
+var tokenTypeNames = map[TokenType]string{
+	TokenKeyword:  "keywo",
+	TokenLiteral:  "liter",
+	TokenBuiltin:  "built",
+	TokenOperator: "opera",
+	TokenComment:  "comnt",
+	TokenString:   "strng",
+	TokenIdent:    "ident",
+	TokenNumber:   "numbr",
+	TokenEOF:      "__eof",
+	TokenWS:       "whtsp",
+	TokenInvalid:  "inval",
 }
 
 var eof = rune(0)
