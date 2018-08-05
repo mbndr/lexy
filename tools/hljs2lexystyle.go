@@ -8,7 +8,10 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"encoding/json"
+	"path/filepath"
 	"log"
 	"net/http"
 	"os"
@@ -19,33 +22,62 @@ import (
 )
 
 const (
-	dlUrl = "https://raw.githubusercontent.com/highlightjs/highlight.js/master/src/styles/%s.css"
+	// used if only one style should be downloaded
+	singleDlUrl = "https://raw.githubusercontent.com/highlightjs/highlight.js/master/src/styles/%s.css"
+	// get a list of all styles
+	stylesUrl = "https://api.github.com/repos/highlightjs/highlight.js/contents/src/styles"
 )
 
 var (
 	// name of the package of the output files
 	packageName = flag.String("p", "style", "package of the output files")
 	// name of the hljs file to download
-	styleName = flag.String("s", "github-gist", "hljs style to download")
+	styleName = flag.String("s", "", "hljs style to download (empty to download all)")
 	// output file
-	outputFile = flag.String("o", "", "output file for the generated lexy style")
-	// rulemap
-	//      .hljs      color  #ff9900
-	r = map[string]map[string]string{}
+	outputDir = flag.String("o", "style", "output directory for the generated lexy style(s)")
 )
 
-func main() {
-	flag.Parse()
-
-	// get stylesheet
-	resp, err := http.Get(fmt.Sprintf(dlUrl, *styleName))
-	if err != nil {
-		log.Fatal(err)
+type (
+	// map["color"] = "white"
+	propertyMap map[string]string
+	// map["hljs"]["color"] = "white"
+	selectorMap map[string]propertyMap
+	
+	// templateData is given to the template
+	templateData struct {
+		Package string
+		Name    string // Language name (how it's exported)
+		Rules selectorMap
 	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+)
+
+// Property gives the property of a css rule of a selector (called in template).
+// Helper function for managing background and background-color issues
+func (td templateData) Property(selector, property string) string {
+	val := td.Rules[selector][property]
+
+	if val == "" && property == "background" {
+		val = td.Rules[selector]["background-color"]
+	}
+
+	if val == "" {
+		val = "inherit"
+		//log.Printf("warning: empty value: %s -> %s", selector, property)
+	}
+
+	return val
+}
+
+
+// hljs2lexstyle converts an hljs css file to a go lexy.Style file
+// n is the name (e.g. GithubGist) of the style
+func hljs2lexstyle(n string, r io.Reader, w io.Writer) error {
+	rules := make(selectorMap)
+
+	// convert writer to bytes
+	body, err := ioutil.ReadAll(r)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	// parse stylesheet
@@ -57,44 +89,104 @@ func main() {
 	// process for easier access
 	for _, rule := range stylesheet.Rules {
 		for _, s := range rule.Selectors {
-			r[s] = make(map[string]string)
+			rules[s] = make(propertyMap)
 			for _, d := range rule.Declarations {
-				r[s][d.Property] = d.Value
+				rules[s][d.Property] = d.Value
 			}
 		}
 	}
 
-	// name of the exported style variable
-	styleVarName := toStyleVarName(*styleName)
-
-	if *outputFile == "" {
-		*outputFile = styleVarName + ".go"
-	}
-
-	// build file
-	funcMap := map[string]interface{}{
-		"Property": getDeclarationValue,
-	}
-
-	t, err := template.New("").Funcs(funcMap).Parse(fileTemplate)
+	// write file
+	t, err := template.New("").Parse(fileTemplate)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	outFile, err := os.Create(*outputFile)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	t.Execute(outFile, struct {
-		Package string // TODO
-		Name    string // Language name (how it's exported)
-	}{
+	t.Execute(w, templateData{
 		Package: *packageName,
-		Name:    styleVarName,
+		Name:    n,
+		Rules: rules,
 	})
+
+	return nil
 }
 
+// processSingle downloads and converts a single style file
+func processSingle(n string) error {
+	// download
+	resp, err := http.Get(fmt.Sprintf(singleDlUrl, n))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// better name without hyphens in camelCase
+	n = toStyleVarName(n)
+
+	// create new file
+	f, err := os.Create(filepath.Join(*outputDir, n + ".go"))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	// convert file
+	err = hljs2lexstyle(n, resp.Body, f)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func main() {
+	flag.Parse()
+
+	// convert one file
+	if *styleName != "" {
+		err := processSingle(*styleName)
+		if err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
+
+	// convert all files
+	resp, err := http.Get(stylesUrl)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	// fileList is a struct to unmarshal the api request
+	type fileList []struct {
+		Name string `json:"name"`
+		// Downloading with the processSingle function
+		// DownloadUrl string `json:"download_url"`
+	}
+
+	var fl fileList
+	dec := json.NewDecoder(resp.Body)
+	err = dec.Decode(&fl)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// TODO save a map of each file as go file to access themes via map
+
+	// process each file
+	for _, info := range fl {
+		n := strings.TrimSuffix(info.Name, ".css")
+		log.Println("Processing: " + n)
+		
+		err := processSingle(n)
+		if err != nil {
+			log.Println(err)
+		}
+	}
+}
+
+// toStyleVarName converts this-name to ThisName
 func toStyleVarName(s string) string {
 	s = strings.Title(s)
 	s = strings.Replace(s, "-", "", -1)
@@ -102,41 +194,25 @@ func toStyleVarName(s string) string {
 	return s
 }
 
-// getDeclarationValue returns a value of a selector property
-// checks if '"' are needed and is flexible with background vs background-color
-// because we check if the property is "background", in the template must be searched with "background" and not "background-color"
-func getDeclarationValue(selector, property string) string {
-	val := r[selector][property]
-
-	if val == "" && property == "background" {
-		val = r[selector]["background-color"]
-	}
-
-	if val == "" {
-		log.Printf("empty value: %s -> %s", selector, property)
-	}
-
-	// TODO default color if not specified or handles that css later on itself?
-
-	return val
-}
-
 var fileTemplate = `package {{.Package}}
+// Code generated by mbndr/lexy
+// DO NOT EDIT!
+// @generated
 
 import "github.com/mbndr/lexy"
 
 var {{.Name}} = lexy.Style{
-	Foreground: "{{Property ".hljs" "color"}}",
-	Background: "{{Property ".hljs" "background"}}",
+	Foreground: "{{.Property ".hljs" "color"}}",
+	Background: "{{.Property ".hljs" "background"}}",
 
 	TokenColors: map[lexy.TokenType]string{
-		lexy.TokenKeyword:  "{{Property ".hljs-keyword" "color"}}",
-		lexy.TokenLiteral:  "{{Property ".hljs-literal" "color"}}",
-		lexy.TokenBuiltin:  "{{Property ".hljs-built_in" "color"}}",
+		lexy.TokenKeyword:  "{{.Property ".hljs-keyword" "color"}}",
+		lexy.TokenLiteral:  "{{.Property ".hljs-literal" "color"}}",
+		lexy.TokenBuiltin:  "{{.Property ".hljs-built_in" "color"}}",
 		lexy.TokenOperator: "inherit", // TODO
-		lexy.TokenComment:  "{{Property ".hljs-comment" "color"}}",
-		lexy.TokenString:   "{{Property ".hljs-string" "color"}}",
-		lexy.TokenNumber:   "{{Property ".hljs-number" "color"}}",
+		lexy.TokenComment:  "{{.Property ".hljs-comment" "color"}}",
+		lexy.TokenString:   "{{.Property ".hljs-string" "color"}}",
+		lexy.TokenNumber:   "{{.Property ".hljs-number" "color"}}",
 	},
 }
 `

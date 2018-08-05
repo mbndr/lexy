@@ -29,12 +29,14 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer src.Close()
 
 	// output file
 	dest, err := os.Create(*outputFile)
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer dest.Close()
 
 	// scan tokens
 	tokens := lexy.ScanAll(src, lang.Go)
@@ -52,7 +54,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	format.WriteCss(cssBuf, style.AtelierEstuaryLight)
+	format.WriteCss(cssBuf, style.GithubGist)
 
 	t, err := template.New("").Parse(htmlTemplate)
 	if err != nil {
