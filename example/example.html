@@ -7,29 +7,282 @@
     <title>Page Title</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 	<style>
-	.lexy {background-color: #f4f3ec; color: #5f5e4e; display: block;}
-.li {color: #ae7313;}.bu {color: #ae7313;}.op {color: #5f5e4e;}.co {color: #6c6b5a;}.st {color: #7d9726;}.nu {color: #ba6236;}.kw {color: #5f9182;}
+	body {margin: 0; padding: 0;}
+	.lexy {background-color: #f4f3ec; color: #5f5e4e; display: block; padding: 10px;}
+.st {color: #7d9726;}.nu {color: #ba6236;}.kw {color: #5f9182;}.li {color: #ae7313;}.bu {color: #ae7313;}.op {color: #5f5e4e;}.co {color: #6c6b5a;}
 	</style>
 </head>
 <body>
-    <pre><code class="lexy"><span class="co">// only for lexing purpose</span>
-<span class="kw">package</span> main
+    <pre><code class="lexy"><span class="kw">package</span> lexy
 
-<span class="kw">import</span> <span class="st">"fmt"</span>
+<span class="kw">import</span> <span class="op">(</span>
+	<span class="st">"bufio"</span>
+	<span class="st">"bytes"</span>
+	<span class="st">"io"</span>
+	<span class="st">"strings"</span>
+	<span class="st">"unicode/utf8"</span>
 
-<span class="kw">var</span> x <span class="op">=</span> <span class="nu">42</span>
+	<span class="st">"log"</span>
+<span class="op">)</span>
 
-<span class="kw">var</span> b <span class="op">=</span> <span class="li">true</span>
+<span class="co">// Lexer lexes through a reader</span>
+<span class="kw">type</span> Lexer <span class="kw">struct</span> <span class="op">{</span>
+	r  <span class="op">*</span>bufio<span class="op">.</span>Reader
+	la Lang
+	sf scanFunc
+<span class="op">}</span>
 
-<span class="co">/*
-This is a multi line comment
-*/</span>
-<span class="kw">func</span> HelloWorld<span class="op">()</span> <span class="op">{</span>
-	fmt<span class="op">.</span>Println<span class="op">(</span><span class="st">"Hell\"o World!"</span><span class="op">)</span>
+<span class="co">// NewLexer returns a new instance of a Lexer</span>
+<span class="kw">func</span> NewLexer<span class="op">(</span>r io<span class="op">.</span>Reader<span class="op">,</span> la Lang<span class="op">)</span> <span class="op">*</span>Lexer <span class="op">{</span>
+	l <span class="op">:=</span> <span class="op">&</span>Lexer<span class="op">{</span>r<span class="op">:</span> bufio<span class="op">.</span>NewReader<span class="op">(</span>r<span class="op">)}</span>
+	l<span class="op">.</span>sf <span class="op">=</span> scanIdent
+	l<span class="op">.</span>la <span class="op">=</span> la
+	<span class="kw">return</span> l
+<span class="op">}</span>
 
-	str <span class="op">:=</span> <span class="st">`ay`</span>
+<span class="kw">var</span> <span class="op">(</span>
+	<span class="co">// used by scan functions to scan into</span>
+	buf bytes<span class="op">.</span>Buffer
+<span class="op">)</span>
 
-	_ <span class="op">=</span> <span class="bu">len</span><span class="op">([]</span><span class="kw">string</span><span class="op">{</span><span class="st">"test"</span><span class="op">})</span>
+<span class="co">// Scan returns the next token</span>
+<span class="kw">func</span> <span class="op">(</span>l Lexer<span class="op">)</span> Scan<span class="op">()</span> Token <span class="op">{</span>
+	buf<span class="op">.</span>Reset<span class="op">()</span>
+
+	c <span class="op">:=</span> l<span class="op">.</span>read<span class="op">()</span>
+	<span class="kw">if</span> c <span class="op">==</span> eof <span class="op">{</span>
+		<span class="kw">return</span> Token<span class="op">{</span>TokenEOF<span class="op">,</span> <span class="st">""</span><span class="op">}</span>
+	<span class="op">}</span>
+	l<span class="op">.</span>unread<span class="op">()</span> <span class="co">// will be reread by scanFunc</span>
+
+	<span class="co">// get the scanFunc</span>
+	<span class="kw">if</span> isWhitespace<span class="op">(</span>c<span class="op">)</span> <span class="op">{</span>
+		l<span class="op">.</span>sf <span class="op">=</span> scanWhitespace
+	<span class="op">}</span> <span class="kw">else</span> <span class="kw">if</span> couldBeComment<span class="op">(</span>c<span class="op">,</span> l<span class="op">.</span>peek<span class="op">())</span> <span class="op">{</span>
+		l<span class="op">.</span>sf <span class="op">=</span> scanComment
+	<span class="op">}</span> <span class="kw">else</span> <span class="kw">if</span> couldBeNumber<span class="op">(</span>c<span class="op">,</span> l<span class="op">.</span>peek<span class="op">())</span> <span class="op">{</span>
+		l<span class="op">.</span>sf <span class="op">=</span> scanNumber
+	<span class="op">}</span> <span class="kw">else</span> <span class="kw">if</span> isLetter<span class="op">(</span>c<span class="op">)</span> <span class="op">||</span> c <span class="op">==</span> <span class="st">'_'</span> <span class="op">{</span>
+		l<span class="op">.</span>sf <span class="op">=</span> scanIdent
+	<span class="op">}</span> <span class="kw">else</span> <span class="kw">if</span> strings<span class="op">.</span>ContainsRune<span class="op">(</span>l<span class="op">.</span>la<span class="op">.</span>Operators<span class="op">,</span> c<span class="op">)</span> <span class="op">{</span>
+		l<span class="op">.</span>sf <span class="op">=</span> scanOperator
+	<span class="op">}</span> <span class="kw">else</span> <span class="kw">if</span> c <span class="op">==</span> <span class="st">'"'</span> <span class="op">||</span> c <span class="op">==</span> <span class="st">'\''</span> <span class="op">||</span> c <span class="op">==</span> <span class="st">'`'</span> <span class="op">{</span>
+		l<span class="op">.</span>sf <span class="op">=</span> scanString
+	<span class="op">}</span>
+
+	<span class="kw">return</span> l<span class="op">.</span>sf<span class="op">(&</span>l<span class="op">)</span>
+<span class="op">}</span>
+
+<span class="co">// read reads the next rune</span>
+<span class="kw">func</span> <span class="op">(</span>l <span class="op">*</span>Lexer<span class="op">)</span> read<span class="op">()</span> <span class="kw">rune</span> <span class="op">{</span>
+	c<span class="op">,</span> _<span class="op">,</span> err <span class="op">:=</span> l<span class="op">.</span>r<span class="op">.</span>ReadRune<span class="op">()</span>
+	<span class="kw">if</span> err <span class="op">!=</span> <span class="li">nil</span> <span class="op">{</span>
+		<span class="kw">return</span> eof
+	<span class="op">}</span>
+	<span class="kw">return</span> c
+<span class="op">}</span>
+
+<span class="co">// peek returns what the next rune is</span>
+<span class="kw">func</span> <span class="op">(</span>l <span class="op">*</span>Lexer<span class="op">)</span> peek<span class="op">()</span> <span class="kw">rune</span> <span class="op">{</span>
+	b<span class="op">,</span> err <span class="op">:=</span> l<span class="op">.</span>r<span class="op">.</span>Peek<span class="op">(</span><span class="nu">1</span><span class="op">)</span>
+	<span class="kw">if</span> err <span class="op">!=</span> <span class="li">nil</span> <span class="op">{</span>
+		<span class="kw">return</span> eof
+	<span class="op">}</span>
+	c<span class="op">,</span> _ <span class="op">:=</span> utf8<span class="op">.</span>DecodeRune<span class="op">(</span>b<span class="op">)</span>
+	<span class="kw">return</span> c
+<span class="op">}</span>
+
+<span class="co">// unread unreads the last read rune</span>
+<span class="kw">func</span> <span class="op">(</span>l <span class="op">*</span>Lexer<span class="op">)</span> unread<span class="op">()</span> <span class="op">{</span>
+	err <span class="op">:=</span> l<span class="op">.</span>r<span class="op">.</span>UnreadRune<span class="op">()</span>
+	<span class="kw">if</span> err <span class="op">!=</span> <span class="li">nil</span> <span class="op">{</span>
+		log<span class="op">.</span>Fatal<span class="op">(</span>err<span class="op">)</span>
+	<span class="op">}</span>
+<span class="op">}</span>
+
+<span class="co">// scanFunc is a scanner function for a specific token type</span>
+<span class="co">// each function returns</span>
+<span class="kw">type</span> scanFunc <span class="kw">func</span><span class="op">(*</span>Lexer<span class="op">)</span> Token
+
+<span class="co">// scanIdent returns a TokenIdent token</span>
+<span class="co">// another TokenType can be returned if the value matches a keyword etc</span>
+<span class="kw">func</span> scanIdent<span class="op">(</span>l <span class="op">*</span>Lexer<span class="op">)</span> Token <span class="op">{</span>
+	<span class="co">// can change if we read e.g. a keyword</span>
+	<span class="kw">var</span> typ TokenType <span class="op">=</span> TokenIdent
+
+	<span class="co">// first char is approved a ident</span>
+	<span class="co">// cannot be done in the for loop because then a digit would be a valid first identifier char</span>
+	buf<span class="op">.</span>WriteRune<span class="op">(</span>l<span class="op">.</span>read<span class="op">())</span>
+
+	<span class="kw">for</span> <span class="op">{</span>
+		c <span class="op">:=</span> l<span class="op">.</span>read<span class="op">()</span>
+		<span class="kw">if</span> c <span class="op">==</span> eof <span class="op">{</span>
+			<span class="kw">break</span>
+		<span class="op">}</span>
+
+		<span class="kw">if</span> isLetter<span class="op">(</span>c<span class="op">)</span> <span class="op">||</span> isDigit<span class="op">(</span>c<span class="op">)</span> <span class="op">||</span> c <span class="op">==</span> <span class="st">'_'</span> <span class="op">{</span>
+			buf<span class="op">.</span>WriteRune<span class="op">(</span>c<span class="op">)</span>
+			<span class="kw">continue</span>
+		<span class="op">}</span>
+
+		<span class="co">// invalid ident char (operator / punctuation etc coming)</span>
+		l<span class="op">.</span>unread<span class="op">()</span>
+		<span class="kw">break</span>
+	<span class="op">}</span>
+
+	<span class="co">// check for keywords etc</span>
+	s <span class="op">:=</span> buf<span class="op">.</span>String<span class="op">()</span>
+
+	<span class="kw">if</span> l<span class="op">.</span>la<span class="op">.</span>Keywords<span class="op">[</span>s<span class="op">]</span> <span class="op">{</span>
+		typ <span class="op">=</span> TokenKeyword
+	<span class="op">}</span>
+	<span class="kw">if</span> l<span class="op">.</span>la<span class="op">.</span>Literals<span class="op">[</span>s<span class="op">]</span> <span class="op">{</span>
+		typ <span class="op">=</span> TokenLiteral
+	<span class="op">}</span>
+	<span class="kw">if</span> l<span class="op">.</span>la<span class="op">.</span>Builtins<span class="op">[</span>s<span class="op">]</span> <span class="op">{</span>
+		typ <span class="op">=</span> TokenBuiltin
+	<span class="op">}</span>
+
+	<span class="kw">return</span> Token<span class="op">{</span>typ<span class="op">,</span> s<span class="op">}</span>
+<span class="op">}</span>
+
+<span class="co">// scanOperator returns a TokenOperator token</span>
+<span class="kw">func</span> scanOperator<span class="op">(</span>l <span class="op">*</span>Lexer<span class="op">)</span> Token <span class="op">{</span>
+
+	<span class="kw">for</span> <span class="op">{</span>
+		c <span class="op">:=</span> l<span class="op">.</span>read<span class="op">()</span>
+		<span class="kw">if</span> c <span class="op">==</span> eof <span class="op">{</span>
+			<span class="kw">break</span>
+		<span class="op">}</span>
+
+		<span class="kw">if</span> <span class="op">!</span>strings<span class="op">.</span>ContainsRune<span class="op">(</span>l<span class="op">.</span>la<span class="op">.</span>Operators<span class="op">,</span> c<span class="op">)</span> <span class="op">{</span>
+			l<span class="op">.</span>unread<span class="op">()</span>
+			<span class="kw">break</span>
+		<span class="op">}</span>
+
+		buf<span class="op">.</span>WriteRune<span class="op">(</span>c<span class="op">)</span>
+	<span class="op">}</span>
+
+	<span class="kw">return</span> Token<span class="op">{</span>TokenOperator<span class="op">,</span> buf<span class="op">.</span>String<span class="op">()}</span>
+<span class="op">}</span>
+
+<span class="co">// scanString returns a TokenString token</span>
+<span class="co">// can also be a char</span>
+<span class="kw">func</span> scanString<span class="op">(</span>l <span class="op">*</span>Lexer<span class="op">)</span> Token <span class="op">{</span>
+	<span class="kw">var</span> nextEscaped <span class="kw">bool</span>
+
+	<span class="co">// '"' or '\''</span>
+	delimiter <span class="op">:=</span> l<span class="op">.</span>read<span class="op">()</span>
+	buf<span class="op">.</span>WriteRune<span class="op">(</span>delimiter<span class="op">)</span>
+
+	<span class="kw">for</span> <span class="op">{</span>
+		c <span class="op">:=</span> l<span class="op">.</span>read<span class="op">()</span>
+		<span class="kw">if</span> c <span class="op">==</span> eof <span class="op">{</span>
+			<span class="kw">break</span>
+		<span class="op">}</span>
+
+		buf<span class="op">.</span>WriteRune<span class="op">(</span>c<span class="op">)</span>
+
+		<span class="kw">if</span> c <span class="op">==</span> <span class="st">'\\'</span> <span class="op">&&</span> <span class="op">!</span>nextEscaped <span class="op">{</span>
+			nextEscaped <span class="op">=</span> <span class="li">true</span>
+			<span class="kw">continue</span>
+		<span class="op">}</span>
+
+		<span class="kw">if</span> c <span class="op">==</span> delimiter <span class="op">&&</span> <span class="op">!</span>nextEscaped <span class="op">{</span>
+			<span class="kw">break</span>
+		<span class="op">}</span>
+		nextEscaped <span class="op">=</span> <span class="li">false</span>
+	<span class="op">}</span>
+
+	<span class="kw">return</span> Token<span class="op">{</span>TokenString<span class="op">,</span> buf<span class="op">.</span>String<span class="op">()}</span>
+<span class="op">}</span>
+
+<span class="co">// scanNumber returns a TokenNumber token</span>
+<span class="co">// TODO specific number possibilities (prefix, suffix etc)?</span>
+<span class="kw">func</span> scanNumber<span class="op">(</span>l <span class="op">*</span>Lexer<span class="op">)</span> Token <span class="op">{</span>
+	<span class="co">// first char is surely part of a number (maybe '.')</span>
+	buf<span class="op">.</span>WriteRune<span class="op">(</span>l<span class="op">.</span>read<span class="op">())</span>
+
+	<span class="kw">for</span> <span class="op">{</span>
+		c <span class="op">:=</span> l<span class="op">.</span>read<span class="op">()</span>
+		<span class="kw">if</span> c <span class="op">==</span> eof <span class="op">{</span>
+			<span class="kw">break</span>
+		<span class="op">}</span>
+
+		<span class="kw">if</span> <span class="op">!</span>isDigit<span class="op">(</span>c<span class="op">)</span> <span class="op">{</span>
+			l<span class="op">.</span>unread<span class="op">()</span>
+			<span class="kw">break</span>
+		<span class="op">}</span>
+
+		buf<span class="op">.</span>WriteRune<span class="op">(</span>c<span class="op">)</span>
+	<span class="op">}</span>
+
+	<span class="kw">return</span> Token<span class="op">{</span>TokenNumber<span class="op">,</span> buf<span class="op">.</span>String<span class="op">()}</span>
+<span class="op">}</span>
+
+<span class="co">// scanComment returns a TokenComment token</span>
+<span class="co">// at this point it's verified that a comment begins</span>
+<span class="kw">func</span> scanComment<span class="op">(</span>l <span class="op">*</span>Lexer<span class="op">)</span> Token <span class="op">{</span>
+
+	buf<span class="op">.</span>WriteRune<span class="op">(</span>l<span class="op">.</span>read<span class="op">())</span> <span class="co">// first comment indicator</span>
+	c <span class="op">:=</span> l<span class="op">.</span>read<span class="op">()</span>
+
+	buf<span class="op">.</span>WriteRune<span class="op">(</span>c<span class="op">)</span>
+
+	<span class="kw">if</span> c <span class="op">==</span> <span class="st">'/'</span> <span class="op">{</span>
+		<span class="co">// line comment</span>
+		<span class="kw">for</span> <span class="op">{</span>
+			c <span class="op">:=</span> l<span class="op">.</span>read<span class="op">()</span>
+			<span class="kw">if</span> c <span class="op">==</span> eof <span class="op">{</span>
+				<span class="kw">break</span>
+			<span class="op">}</span>
+
+			<span class="kw">if</span> c <span class="op">==</span> <span class="st">'\n'</span> <span class="op">{</span>
+				l<span class="op">.</span>unread<span class="op">()</span>
+				<span class="kw">break</span>
+			<span class="op">}</span>
+
+			buf<span class="op">.</span>WriteRune<span class="op">(</span>c<span class="op">)</span>
+		<span class="op">}</span>
+	<span class="op">}</span> <span class="kw">else</span> <span class="kw">if</span> c <span class="op">==</span> <span class="st">'*'</span> <span class="op">{</span>
+		<span class="co">// block comment</span>
+		<span class="kw">for</span> <span class="op">{</span>
+			c <span class="op">:=</span> l<span class="op">.</span>read<span class="op">()</span>
+			<span class="kw">if</span> c <span class="op">==</span> eof <span class="op">{</span>
+				<span class="kw">break</span>
+			<span class="op">}</span>
+
+			<span class="kw">if</span> c <span class="op">==</span> <span class="st">'*'</span> <span class="op">&&</span> l<span class="op">.</span>peek<span class="op">()</span> <span class="op">==</span> <span class="st">'/'</span> <span class="op">{</span>
+				buf<span class="op">.</span>WriteRune<span class="op">(</span>c<span class="op">)</span>        <span class="co">// '*'</span>
+				buf<span class="op">.</span>WriteRune<span class="op">(</span>l<span class="op">.</span>read<span class="op">())</span> <span class="co">// '/'</span>
+				<span class="kw">break</span>
+			<span class="op">}</span>
+
+			buf<span class="op">.</span>WriteRune<span class="op">(</span>c<span class="op">)</span>
+		<span class="op">}</span>
+	<span class="op">}</span>
+
+	<span class="kw">return</span> Token<span class="op">{</span>TokenComment<span class="op">,</span> buf<span class="op">.</span>String<span class="op">()}</span>
+<span class="op">}</span>
+
+<span class="co">// scanWhitespace returns a TokenWS token</span>
+<span class="kw">func</span> scanWhitespace<span class="op">(</span>l <span class="op">*</span>Lexer<span class="op">)</span> Token <span class="op">{</span>
+
+	<span class="kw">for</span> <span class="op">{</span>
+		c <span class="op">:=</span> l<span class="op">.</span>read<span class="op">()</span>
+		<span class="kw">if</span> c <span class="op">==</span> eof <span class="op">{</span>
+			<span class="kw">break</span>
+		<span class="op">}</span>
+
+		<span class="kw">if</span> <span class="op">!</span>isWhitespace<span class="op">(</span>c<span class="op">)</span> <span class="op">{</span>
+			l<span class="op">.</span>unread<span class="op">()</span>
+			<span class="kw">break</span>
+		<span class="op">}</span>
+
+		buf<span class="op">.</span>WriteRune<span class="op">(</span>c<span class="op">)</span>
+	<span class="op">}</span>
+
+	<span class="kw">return</span> Token<span class="op">{</span>TokenWS<span class="op">,</span> buf<span class="op">.</span>String<span class="op">()}</span>
 <span class="op">}</span>
 <span class=""></span></code></pre>
 </body>

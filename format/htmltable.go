@@ -1,12 +1,14 @@
 package format
+
 // NOT COMPLETE / WORKING
 
-// TODO option for inline style
-
+// TODO customizable tabwidth
+/*
 import (
 	"io"
 	"fmt"
 	"bytes"
+	"strings"
 
 	"github.com/mbndr/lexy"
 )
@@ -81,6 +83,11 @@ func (t *tr) String() string {
 			s = htmlWhitespace(s)
 		}
 
+		// TODO multi line comments
+		if strings.ContainsRune(s, '\n') {
+
+		}
+
 		buf.WriteString(
 			fmt.Sprintf(`<span class="%s">%s</span>`, cssClasses[to.Typ], s),
 		)
@@ -111,4 +118,4 @@ fmt.Fprint(w, "<tr>")
 				}
 			}
 		}
-		*/
+*/

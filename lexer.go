@@ -8,19 +8,17 @@ import (
 	"unicode/utf8"
 
 	"log"
-
-	"github.com/mbndr/lexy/lang"
 )
 
 // Lexer lexes through a reader
 type Lexer struct {
 	r  *bufio.Reader
-	la lang.Lang
+	la Lang
 	sf scanFunc
 }
 
 // NewLexer returns a new instance of a Lexer
-func NewLexer(r io.Reader, la lang.Lang) *Lexer {
+func NewLexer(r io.Reader, la Lang) *Lexer {
 	l := &Lexer{r: bufio.NewReader(r)}
 	l.sf = scanIdent
 	l.la = la
@@ -73,7 +71,6 @@ func (l *Lexer) read() rune {
 func (l *Lexer) peek() rune {
 	b, err := l.r.Peek(1)
 	if err != nil {
-		log.Println(err) // TODO
 		return eof
 	}
 	c, _ := utf8.DecodeRune(b)
@@ -171,7 +168,7 @@ func scanString(l *Lexer) Token {
 
 		buf.WriteRune(c)
 
-		if c == '\\' {
+		if c == '\\' && !nextEscaped {
 			nextEscaped = true
 			continue
 		}
@@ -186,7 +183,7 @@ func scanString(l *Lexer) Token {
 }
 
 // scanNumber returns a TokenNumber token
-// TODO specific number possibilities (prefix, suffix etc)
+// TODO specific number possibilities (prefix, suffix etc)?
 func scanNumber(l *Lexer) Token {
 	// first char is surely part of a number (maybe '.')
 	buf.WriteRune(l.read())

@@ -1,32 +1,11 @@
 package lang
 
-// TODO in seperate file
-type WordList map[string]bool
+import "github.com/mbndr/lexy"
 
-func NewWordList(s []string) WordList {
-	wl := make(WordList)
-
-	for _, w := range s {
-		wl[w] = true
-	}
-
-	return wl
-}
-
-type Lang struct {
-	// TODO comment indicators
-	Keywords  WordList
-	Literals  WordList
-	Builtins  WordList
-	Operators string // TODO how to implement?
-}
-
-// END TODO
-
-var Go Lang
+var Go lexy.Lang
 
 func init() {
-	Go.Keywords = NewWordList([]string{
+	Go.Keywords = lexy.NewWordList([]string{
 		"break",
 		"default",
 		"func",
@@ -74,65 +53,13 @@ func init() {
 		"rune",
 		"error",
 	})
-	Go.Literals = NewWordList([]string{
+	Go.Literals = lexy.NewWordList([]string{
 		"true",
 		"false",
 		"iota",
 		"nil",
 	})
-	Go.Operators = "+-*/&=!()[]{}|<>^:.,;%"
-	/*
-		Go.Operators = NewWordList([]string{
-			"+",
-			"&",
-			"+=",
-			"&=",
-			"&&",
-			"==",
-			"!=",
-			"(",
-			")",
-			"-",
-			"|",
-			"-=",
-			"|=",
-			"||",
-			"<",
-			"<=",
-			"[",
-			"]",
-			"*",
-			"^",
-			"*=",
-			"^=",
-			"<-",
-			">",
-			">=",
-			"{",
-			"}",
-			"/",
-			"<<",
-			"/=",
-			"<<=",
-			"++",
-			"=",
-			":=",
-			",",
-			";",
-			"%",
-			">>",
-			"%=",
-			">>=",
-			"--",
-			"!",
-			"...",
-			".",
-			":",
-			"&^",
-			"&^=",
-		})
-	*/
-	Go.Builtins = NewWordList([]string{
+	Go.Builtins = lexy.NewWordList([]string{
 		"append",
 		"cap",
 		"close",
@@ -149,4 +76,5 @@ func init() {
 		"recover",
 		"delete",
 	})
+	Go.Operators = "+-*/&=!()[]{}|<>^:.,;%"
 }

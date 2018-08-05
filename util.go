@@ -1,10 +1,6 @@
 package lexy
 
-import (
-	"io"
-
-	"github.com/mbndr/lexy/lang"
-)
+import "io"
 
 func isWhitespace(c rune) bool {
 	return c == ' ' || c == '\t' || c == '\n'
@@ -30,7 +26,7 @@ func IsTokenEOF(t Token) bool {
 	return t.Typ == TokenEOF
 }
 
-func ScanAll(r io.Reader, la lang.Lang) []Token {
+func ScanAll(r io.Reader, la Lang) []Token {
 	l := NewLexer(r, la)
 
 	var tokens []Token

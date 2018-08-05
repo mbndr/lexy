@@ -26,7 +26,6 @@ const (
 	// highlighted with apostrophys
 	TokenString
 	// e.g. "0x664"
-	// TODO
 	TokenNumber
 	// e.g. "\t ' ' \n"
 	TokenWS

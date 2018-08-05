@@ -1,11 +1,11 @@
 package main
 
 import (
-	"fmt"
-	"os"
-	"log"
 	"bytes"
+	"fmt"
 	"html/template"
+	"log"
+	"os"
 
 	"github.com/mbndr/lexy"
 	"github.com/mbndr/lexy/format"
@@ -18,18 +18,7 @@ const (
 )
 
 func main() {
-	src, _ := os.Open("example/example.go")
-
-	/*l := lexy.NewLexer(f, lang.Go)
-
-	for i := 0; i < tokenLimit; i++ {
-		t := l.Scan()
-		fmt.Println(t.String())
-
-		if lexy.IsTokenEOF(t) {
-			break
-		}
-	}*/
+	src, _ := os.Open("lexer.go")
 
 	var htmlBuf *bytes.Buffer = new(bytes.Buffer)
 	var cssBuf *bytes.Buffer = new(bytes.Buffer)
@@ -55,9 +44,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	t.Execute(f, struct{
+	t.Execute(f, struct {
 		Style template.CSS
-		Body template.HTML
+		Body  template.HTML
 	}{
 		template.CSS(cssBuf.String()),
 		template.HTML(htmlBuf.String()),
@@ -74,6 +63,7 @@ var html = `
     <title>Page Title</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 	<style>
+	body {margin: 0; padding: 0;}
 	{{.Style}}
 	</style>
 </head>
