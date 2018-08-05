@@ -1,0 +1,36 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Page Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+	<style>
+	.lexy {background-color: #f4f3ec; color: #5f5e4e; display: block;}
+.li {color: #ae7313;}.bu {color: #ae7313;}.op {color: #5f5e4e;}.co {color: #6c6b5a;}.st {color: #7d9726;}.nu {color: #ba6236;}.kw {color: #5f9182;}
+	</style>
+</head>
+<body>
+    <pre><code class="lexy"><span class="co">// only for lexing purpose</span>
+<span class="kw">package</span> main
+
+<span class="kw">import</span> <span class="st">"fmt"</span>
+
+<span class="kw">var</span> x <span class="op">=</span> <span class="nu">42</span>
+
+<span class="kw">var</span> b <span class="op">=</span> <span class="li">true</span>
+
+<span class="co">/*
+This is a multi line comment
+*/</span>
+<span class="kw">func</span> HelloWorld<span class="op">()</span> <span class="op">{</span>
+	fmt<span class="op">.</span>Println<span class="op">(</span><span class="st">"Hell\"o World!"</span><span class="op">)</span>
+
+	str <span class="op">:=</span> <span class="st">`ay`</span>
+
+	_ <span class="op">=</span> <span class="bu">len</span><span class="op">([]</span><span class="kw">string</span><span class="op">{</span><span class="st">"test"</span><span class="op">})</span>
+<span class="op">}</span>
+<span class=""></span></code></pre>
+</body>
+</html>

@@ -5,6 +5,8 @@ import "fmt"
 
 var x = 42
 
+var b = true
+
 /*
 This is a multi line comment
 */
