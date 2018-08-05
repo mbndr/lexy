@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"flag"
+	"html/template"
+	"bytes"
 
 	"github.com/mbndr/lexy"
 	"github.com/mbndr/lexy/format"
@@ -11,32 +14,73 @@ import (
 	"github.com/mbndr/lexy/style"
 )
 
-// prints all tokens, the html and css
-func main() {
-	if len(os.Args) < 2 {
-		log.Fatal("no input file given")
-	}
+var (
+	outputFile = flag.String("o", "example.html", "file to store html")
+	inputFile = flag.String("i", "token.go", "file to lex and highlight")
+)
 
-	src, err := os.Open(os.Args[1])
+// generates a html file with highlighted code
+// currently always with go language and one specific style
+func main() {
+	flag.Parse()
+
+	// input file
+	src, err := os.Open(*inputFile)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Fprintln(os.Stdout, "\nTokens:\n")
+	// output file
+	dest, err := os.Create(*outputFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// scan tokens
 	tokens := lexy.ScanAll(src, lang.Go)
 	for i, t := range tokens {
 		fmt.Printf("%d %s\n", i, t)
 	}
 
-	formatter := format.NewHtmlFormatter(tokens)
+	// write to template
+	htmlBuf := new(bytes.Buffer)
+	cssBuf := new(bytes.Buffer)
 
-	fmt.Fprintln(os.Stdout, "\nHTML:\n\n")
-	err = formatter.Format(os.Stdout)
+	formatter := format.NewHtmlFormatter(tokens)
+	err = formatter.Format(htmlBuf)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Fprintln(os.Stdout, "\nCSS:\n")
-	format.WriteCss(os.Stdout, style.AtelierEstuaryLight)
+	format.WriteCss(cssBuf, style.AtelierEstuaryLight)
+
+	t, err := template.New("").Parse(htmlTemplate)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	t.Execute(dest, struct{
+		Style template.CSS
+		Body template.HTML
+	}{
+		template.CSS(cssBuf.String()),
+		template.HTML(htmlBuf.String()),
+	})
 
 }
+
+var htmlTemplate = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Lexy example</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+    {{.Style}}
+    </style>
+</head>
+<body>
+    {{.Body}}
+</body>
+</html>`
