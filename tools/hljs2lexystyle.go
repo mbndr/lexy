@@ -176,6 +176,9 @@ func main() {
 
 	// process each file
 	for _, info := range fl {
+		if filepath.Ext(info.Name) != ".css" {
+			continue
+		}
 		n := strings.TrimSuffix(info.Name, ".css")
 		log.Println("Processing: " + n)
 		
@@ -191,6 +194,7 @@ func toStyleVarName(s string) string {
 	s = strings.Title(s)
 	s = strings.Replace(s, "-", "", -1)
 	s = strings.Replace(s, "_", "", -1)
+	s = strings.Replace(s, ".", "", -1)
 	return s
 }
 

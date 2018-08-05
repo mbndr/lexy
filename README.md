@@ -4,12 +4,19 @@
 
 This is a lexer written just for learning purose. My goal is it to write a syntax highlighter with e.g. HTML output. I also want to be the languages more customizable. Currently it only supports Golang. There will be significant API changes in the future!
 
+## Styles
+Currently all styles are imported from Highlight.js.
+
+Unfortunately lexy can't handle the styles as detailed as Highlight.js and can't handle the styles with background image.
+
 ## Usage
 ```go
-import "github.com/mbndr/lexy"
-import "github.com/mbndr/lexy/format"
-import "github.com/mbndr/lexy/lang"
-import "github.com/mbndr/lexy/style"
+import (
+    "github.com/mbndr/lexy"
+    "github.com/mbndr/lexy/format"
+    "github.com/mbndr/lexy/lang"
+    "github.com/mbndr/lexy/style"
+)
 
 f, _ := os.Open("example.go")
 htmlBuf = new(bytes.Buffer)

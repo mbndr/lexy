@@ -5,7 +5,7 @@ package style
 
 import "github.com/mbndr/lexy"
 
-var Kimbie.Dark = lexy.Style{
+var KimbieDark = lexy.Style{
 	Foreground: "#d3af86",
 	Background: "#221a0f",
 
