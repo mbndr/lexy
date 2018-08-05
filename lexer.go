@@ -55,7 +55,7 @@ func (l lexer) Scan() token {
 		l.sf = scanIdent
 	} else if strings.ContainsRune(l.la.Operators, c) {
 		l.sf = scanOperator
-	} else if c == '"' || c == '\'' {
+	} else if c == '"' || c == '\'' || c == '`' {
 		l.sf = scanString
 	}
 

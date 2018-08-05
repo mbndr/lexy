@@ -11,5 +11,7 @@ This is a multi line comment
 func HelloWorld() {
 	fmt.Println("Hell\"o World!")
 
+	str := `ay`
+
 	_ = len([]string{"test"})
 }
