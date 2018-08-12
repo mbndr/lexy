@@ -21,7 +21,6 @@ var (
 )
 
 // generates a html file with highlighted code
-// currently always with go language and one specific style
 func main() {
 	flag.Parse()
 
@@ -41,7 +40,7 @@ func main() {
 	}
 	defer dest.Close()
 
-	// scan tokens
+	// scan tokens (and print them)
 	tokens := lexy.ScanAll(src, lang.Go)
 	for i, t := range tokens {
 		fmt.Printf("%d %s\n", i, t)
@@ -51,13 +50,11 @@ func main() {
 	htmlBuf := new(bytes.Buffer)
 	cssBuf := new(bytes.Buffer)
 
-	formatter := format.NewHtmlFormatter(tokens)
-	err = formatter.Format(htmlBuf)
+	formatter := format.NewHtmlFormatter(tokens, htmlBuf, cssBuf)
+	err = formatter.Format(*s)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	format.WriteCss(cssBuf, *s)
 
 	t, err := template.New("").Parse(htmlTemplate)
 	if err != nil {

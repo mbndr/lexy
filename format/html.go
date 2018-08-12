@@ -1,6 +1,6 @@
 package format
 
-// TODO option for inline style
+// TODO option for inline style?
 
 import (
 	"fmt"
@@ -21,50 +21,56 @@ var cssClasses = map[lexy.TokenType]string{
 	lexy.TokenNumber:   "nu",
 }
 
-// WriteCss returns the css data of a style
-func WriteCss(w io.Writer, s lexy.Style) {
+// HtmlFormatter formats the code into a html <pre><code> construct
+type HtmlFormatter struct {
+	tokens []lexy.Token
+	cssWriter io.Writer
+	htmlWriter io.Writer
+}
+
+// NewHtmlFormatter returns a new HtmlFormatter.
+// For better separation of CSS and HTML there have to be given two writers
+func NewHtmlFormatter(ts []lexy.Token, hw, cw io.Writer) HtmlFormatter {
+	return HtmlFormatter{tokens: ts, cssWriter: cw, htmlWriter: hw}
+}
+
+// Format writes the HTML and CSS
+func (f *HtmlFormatter) Format(s lexy.Style) error {
+	fmt.Fprint(f.htmlWriter, `<pre><code class="lexy">`)
+
+	for _, t := range f.tokens {
+
+		if t.Typ == lexy.TokenWS || t.Typ == lexy.TokenIdent {
+			fmt.Fprint(f.htmlWriter, t.Val)
+			continue
+		}
+
+		fmt.Fprintf(f.htmlWriter, `<span class="%s">%s</span>`, cssClasses[t.Typ], t.Val)
+
+	}
+
+	fmt.Fprint(f.htmlWriter, `</code></pre>`)
+
+	f.writeCss(s)
+
+	return nil
+}
+
+// writeCss writes the css of a style
+func (f *HtmlFormatter) writeCss(s lexy.Style) {
 	// "body"
-	fmt.Fprintf(w,
+	fmt.Fprintf(f.cssWriter,
 		".lexy {background-color: %s; color: %s; display: block; padding: 10px;}\n",
 		s.Background, s.Foreground,
 	)
 	// code
 	for typ, class := range cssClasses {
-		fmt.Fprintf(w, ".%s {color: %s;}", class, s.TokenColors[typ])
+		fmt.Fprintf(f.cssWriter, ".%s {color: %s;}", class, s.TokenColors[typ])
 	}
-}
-
-// HtmlTableFormatter formats the code into a html <pre><code> construct
-type HtmlFormatter struct {
-	tokens []lexy.Token
-}
-
-// NewHtmlFormatter returns a new HtmlFormatter
-func NewHtmlFormatter(ts []lexy.Token) HtmlFormatter {
-	return HtmlFormatter{tokens: ts}
-}
-
-// Format returns the html code
-func (f *HtmlFormatter) Format(w io.Writer) error {
-	fmt.Fprint(w, `<pre><code class="lexy">`)
-
-	for _, t := range f.tokens {
-
-		if t.Typ == lexy.TokenWS || t.Typ == lexy.TokenIdent {
-			fmt.Fprint(w, t.Val)
-			continue
-		}
-
-		fmt.Fprintf(w, `<span class="%s">%s</span>`, cssClasses[t.Typ], t.Val)
-
-	}
-
-	fmt.Fprint(w, `</code></pre>`)
-
-	return nil
 }
 
 // htmlWhitespace transforms whitespaces to html entities
+// TODO configurable spaces for tabs
 func htmlWhitespace(s string) string {
 	s = strings.Replace(s, " ", "&nbsp;", -1)
 	s = strings.Replace(s, "\t", "&nbsp;&nbsp;&nbsp;&nbsp;", -1)
