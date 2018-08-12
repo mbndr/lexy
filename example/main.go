@@ -50,12 +50,14 @@ func main() {
 	htmlBuf := new(bytes.Buffer)
 	cssBuf := new(bytes.Buffer)
 
-	formatter := format.NewHtmlFormatter(tokens, htmlBuf, cssBuf)
-	err = formatter.Format(*s)
+	// create formatter
+	formatter := format.NewHtml(*s, htmlBuf, cssBuf)
+	err = formatter.Format(tokens)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	// write to the template
 	t, err := template.New("").Parse(htmlTemplate)
 	if err != nil {
 		log.Fatal(err)

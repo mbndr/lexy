@@ -9,22 +9,12 @@ Lexy currently is able to tokenize Golang code and highlight it with HtmlFormatt
 ## Styles
 Currently all styles are imported from Highlight.js.
 
-Unfortunately lexy can't handle the styles as detailed as Highlight.js and can't handle the styles with background image.
+Unfortunately Lexy can't handle the styles as detailed as Highlight.js and can't handle the styles with background image.
+
+[Highlight.js LICENSE](https://github.com/highlightjs/highlight.js/blob/master/LICENSE)
 
 ## Usage
 ```go
-// TODO is it better to do everything with one object (better use of Formatter interface)
-// Example:
-
-//     l := lexy.New(f, lang.Go)
-//     l.ScanAll()                  // tokenization
-//     formatter := HtmlFormatter{
-//         HtmlWriter: hw,
-//         CssWriter: cw,
-//     }
-//     l.Format(formatter, style.GithubGist) // calls formatter.Format(tokens, style.GithubGist)
-
-// END TODO
 import (
     "github.com/mbndr/lexy"
     "github.com/mbndr/lexy/format"
@@ -39,10 +29,16 @@ f, _ := os.Open("example.go")
 htmlBuf = new(bytes.Buffer)
 cssBuf = new(bytes.Buffer)
 
-// Step 1: Get all tokens
+// get all tokens
 tokens := lexy.ScanAll(f, lang.Go)
 
-// Step 2: Create a formatter to get a highlighted code
-formatter := format.NewHtmlFormatter(tokens, htmlBuf, cssBuf)
-err := formatter.Format(style.AtelierEstuaryLight)
+// create a formatter to get a highlighted code
+formatter := format.NewHtml(style.AtelierEstuaryLight, htmlBuf, cssBuf)
+
+// write to the buffers
+err = formatter.Format(tokens)
+if err != nil {
+    log.Fatal(err)
+}
+err := formatter.Format(tokens)
 ```

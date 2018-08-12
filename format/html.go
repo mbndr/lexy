@@ -23,22 +23,23 @@ var cssClasses = map[lexy.TokenType]string{
 
 // HtmlFormatter formats the code into a html <pre><code> construct
 type HtmlFormatter struct {
-	tokens []lexy.Token
+	Style lexy.Style
 	cssWriter io.Writer
 	htmlWriter io.Writer
 }
 
-// NewHtmlFormatter returns a new HtmlFormatter.
+// NewHtml returns a new HtmlFormatter.
 // For better separation of CSS and HTML there have to be given two writers
-func NewHtmlFormatter(ts []lexy.Token, hw, cw io.Writer) HtmlFormatter {
-	return HtmlFormatter{tokens: ts, cssWriter: cw, htmlWriter: hw}
+func NewHtml(s lexy.Style, htmlWriter, cssWriter io.Writer) HtmlFormatter {
+	return HtmlFormatter{Style: s, cssWriter: cssWriter, htmlWriter: htmlWriter}
 }
 
+
 // Format writes the HTML and CSS
-func (f *HtmlFormatter) Format(s lexy.Style) error {
+func (f *HtmlFormatter) Format(tokens []lexy.Token) error {
 	fmt.Fprint(f.htmlWriter, `<pre><code class="lexy">`)
 
-	for _, t := range f.tokens {
+	for _, t := range tokens {
 
 		if t.Typ == lexy.TokenWS || t.Typ == lexy.TokenIdent {
 			fmt.Fprint(f.htmlWriter, t.Val)
@@ -51,21 +52,21 @@ func (f *HtmlFormatter) Format(s lexy.Style) error {
 
 	fmt.Fprint(f.htmlWriter, `</code></pre>`)
 
-	f.writeCss(s)
+	f.writeCss()
 
 	return nil
 }
 
 // writeCss writes the css of a style
-func (f *HtmlFormatter) writeCss(s lexy.Style) {
+func (f *HtmlFormatter) writeCss() {
 	// "body"
 	fmt.Fprintf(f.cssWriter,
 		".lexy {background-color: %s; color: %s; display: block; padding: 10px;}\n",
-		s.Background, s.Foreground,
+		f.Style.Background, f.Style.Foreground,
 	)
 	// code
 	for typ, class := range cssClasses {
-		fmt.Fprintf(f.cssWriter, ".%s {color: %s;}", class, s.TokenColors[typ])
+		fmt.Fprintf(f.cssWriter, ".%s {color: %s;}", class, f.Style.TokenColors[typ])
 	}
 }
 
