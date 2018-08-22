@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"flag"
 	"fmt"
 	"html/template"
 	"log"
@@ -15,26 +14,22 @@ import (
 )
 
 var (
-	outputFile = flag.String("o", "example.html", "file to store html")
-	inputFile  = flag.String("i", "token.go", "file to lex and highlight")
-	styleName  = flag.String("s", "AtelierEstuaryLight", "style to use")
+	s = style.ByName("AtelierEstuaryLight")
+	inputFile = "token.go"
+	outputFile = "example.html"
 )
 
-// generates a html file with highlighted code
+// generate a html file with highlighted code
 func main() {
-	flag.Parse()
-
-	s := style.ByName(*styleName)
-
 	// input file
-	src, err := os.Open(*inputFile)
+	src, err := os.Open(inputFile)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer src.Close()
 
 	// output file
-	dest, err := os.Create(*outputFile)
+	dest, err := os.Create(outputFile)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -46,7 +41,7 @@ func main() {
 		fmt.Printf("%d %s\n", i, t)
 	}
 
-	// write to template
+	// buffers to store generated code
 	htmlBuf := new(bytes.Buffer)
 	cssBuf := new(bytes.Buffer)
 
