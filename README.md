@@ -40,5 +40,11 @@ err = formatter.Format(tokens)
 if err != nil {
     log.Fatal(err)
 }
-err := formatter.Format(tokens)
 ```
+
+## TODO
+- image formatter
+- static lexy.WriteCSS function
+- remove IsTokenEOF()
+- html preview page for all styles
+- no need for TokenInvalid?
